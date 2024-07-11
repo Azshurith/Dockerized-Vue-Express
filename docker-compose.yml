@@ -1,0 +1,61 @@
+services:
+
+    mariadb:
+        container_name: ${PROJECT_NAME}-mariadb
+        image: ${PROJECT_NAME}-mariadb:${PROJECT_NAME}-${PROJECT_VERSION}
+        build:
+            context: .
+            dockerfile: ${MARIADB_DOCKERFILE}/Dockerfile
+        ports:
+            - "${MARIADB_PORT}:${MARIADB_PORT}"
+        environment:
+            MYSQL_DATABASE: ${MARIADB_DATABASE}
+            MYSQL_USER: ${MARIADB_USERNAME}
+            MYSQL_PASSWORD: ${MARIADB_PASSWORD}
+            MYSQL_ROOT_PASSWORD: ${MARIADB_PASSWORD}
+        networks:
+            - unified
+        volumes:
+            - database:/var/lib/mysql
+
+    phpmyadmin:
+        container_name: ${PROJECT_NAME}-phpmyadmin
+        image: ${PROJECT_NAME}-phpmyadmin:${PROJECT_NAME}-${PROJECT_VERSION}
+        build:
+            context: .
+            dockerfile: ${PHPMYADMIN_DOCKERFILE}/Dockerfile
+        ports:
+            - "${PHPMYADMIN_PORT}:${PHPMYADMIN_PORT_MAP}"
+        environment:
+            PMA_HOST: ${PHPMYADMIN_PMA_HOST}
+            PMA_USER: ${MARIADB_USERNAME}
+            PMA_PASSWORD: ${MARIADB_PASSWORD}
+        networks:
+            - unified
+        depends_on:
+            - mariadb
+
+    node:
+        container_name: ${PROJECT_NAME}-node
+        image: ${PROJECT_NAME}-node:${PROJECT_NAME}-${PROJECT_VERSION}
+        build:
+            context: .
+            dockerfile: ${NODE_DOCKERFILE}/Dockerfile
+        ports:
+            - "${NODE_PORT}:${NODE_PORT}"
+        volumes:
+            - ${NODE_DIRECTORY}:${NODE_WORK_DIRECTORY}
+        working_dir: ${NODE_WORK_DIRECTORY}
+        command: /bin/sh -c "npm install && npm run dev"
+        environment:
+            - NODE_PORT=${NODE_PORT}
+
+networks:
+    unified:
+        name: ${PROJECT_NAME}-network
+        driver: bridge
+
+volumes:
+    database:
+        name: ${PROJECT_NAME}-database
+        driver: local
